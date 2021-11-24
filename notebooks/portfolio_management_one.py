@@ -44,7 +44,7 @@ port_stdevs = np.zeros(n_portfolios)
 for i in range(n_portfolios):
     w = np.random.rand(len(assets))        # random weights
     w = w / sum(w)                         # weights sum to 1
-    port_return = np.dot(w.T, hist_mean.as_matrix()) * 250         # annualize; 250 business days
+    port_return = np.dot(w.T, hist_mean.to_numpy()) * 250         # annualize; 250 business days
     port_stdev = np.sqrt(np.dot(w.T, np.dot(hist_cov, w))) * np.sqrt(250)  # annualize; 250 business days
     port_returns[i] = port_return
     port_stdevs[i] = port_stdev
@@ -66,7 +66,7 @@ print(w_gmv_df)
 print(stdev_gmv)
 
 # Global Minimum Variance (GMV) -- numerical
-P = matrix(hist_cov.as_matrix())
+P = matrix(hist_cov.to_numpy())
 q = matrix(np.zeros((len(assets), 1)))
 A = matrix(1.0, (1, len(assets)))
 b = matrix(1.0)
@@ -91,7 +91,7 @@ w_max_ret_df.columns = assets
 print(w_max_ret_df)
 
 # Maximum return -- numerical
-P = matrix(hist_cov.as_matrix())
+P = matrix(hist_cov.to_numpy())
 q = matrix(np.zeros((len(assets), 1)))
 A = matrix(np.hstack([np.array(hist_mean),one_vec.reshape(len(assets),1)]).transpose())
 b = matrix([mu_o,1])
@@ -102,11 +102,11 @@ print(w_max_ret_df_v2)
 
 # efficient frontier
 N = 100
-ef_left = np.asscalar(min(hist_mean.as_matrix()))          # minimum return
-ef_right = np.asscalar(max(hist_mean.as_matrix()))         # maximum return
+ef_left = np.asscalar(min(hist_mean.to_numpy()))          # minimum return
+ef_right = np.asscalar(max(hist_mean.to_numpy()))         # maximum return
 target_returns = np.linspace(ef_left, ef_right, N)         # N target returns
 optimal_weights = [ solvers.qp(P, q, A=A, b=matrix([t,1]))['x'] for t in target_returns ]    # QP solver
-ef_returns = [ np.asscalar(np.dot(w.T, hist_mean.as_matrix())*250) for w in optimal_weights ]         #a nnualized
+ef_returns = [ np.asscalar(np.dot(w.T, hist_mean.to_numpy())*250) for w in optimal_weights ]         #a nnualized
 ef_risks = [ np.asscalar(np.sqrt(np.dot(w.T, np.dot(hist_cov, w)) * 250)) for w in optimal_weights ]
 
 plt.plot(port_stdevs, port_returns, 'o', markersize=6, label='Candidate Market Portfolio')
@@ -127,24 +127,24 @@ plt.show()
 
 # Maximum sharpe -- closed form
 r_f = 0.01
-w_sharpe = np.dot(hist_cov_inv, hist_mean.as_matrix()-r_f/250) / np.dot(one_vec, np.dot(hist_cov_inv, hist_mean.as_matrix()-r_f/250))
+w_sharpe = np.dot(hist_cov_inv, hist_mean.to_numpy()-r_f/250) / np.dot(one_vec, np.dot(hist_cov_inv, hist_mean.to_numpy()-r_f/250))
 w_sharpe_df = pd.DataFrame(w_sharpe).T
 w_sharpe_df.columns = assets
 print(w_sharpe_df)
-print(mu_sharpe := np.dot(w_sharpe.T, hist_mean.as_matrix()) * 250)
+print(mu_sharpe := np.dot(w_sharpe.T, hist_mean.to_numpy()) * 250)
 print(stdev_sharpe := np.sqrt(np.dot(w_sharpe.T, np.dot(hist_cov, w_sharpe))) * np.sqrt(250))
 print(sharpe_ratio := (mu_sharpe-r_f)/stdev_sharpe)
 
 
 from scipy.optimize import minimize
 
-fun = lambda w: -1 * np.dot(w.T, hist_mean.as_matrix()*250-r_f) / np.sqrt(np.dot(w.T, np.dot(hist_cov*250, w)))
+fun = lambda w: -1 * np.dot(w.T, hist_mean.to_numpy()*250-r_f) / np.sqrt(np.dot(w.T, np.dot(hist_cov*250, w)))
 cons = ({'type': 'eq', 'fun': lambda w:  np.dot(w.T, one_vec)-1})
 res = minimize(fun, w_gmv, method='SLSQP', constraints=cons)
 w_sharpe_v2 = res['x']
 w_sharpe_v2_df = pd.DataFrame(w_sharpe_v2).T
 w_sharpe_v2_df.columns = assets
 print(w_sharpe_v2_df)
-print(mu_sharpe_v2 := np.dot(w_sharpe_v2.T, hist_mean.as_matrix()) * 250)
+print(mu_sharpe_v2 := np.dot(w_sharpe_v2.T, hist_mean.to_numpy()) * 250)
 print(stdev_sharpe_v2 := np.sqrt(np.dot(w_sharpe_v2.T, np.dot(hist_cov, w_sharpe_v2))) * np.sqrt(250))
 print(sharpe_ratio_v2 := (mu_sharpe-r_f)/stdev_sharpe)
